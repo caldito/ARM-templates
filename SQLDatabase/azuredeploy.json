@@ -1,0 +1,101 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "sql-serverAdminLogin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sql-serverAdminLoginPassword": {
+      "type": "securestring"
+    },
+    "sql-dbName": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "my-db"
+    },
+    "sql-dbCollation": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "SQL_Latin1_General_CP1_CI_AS"
+    },
+    "sql-dbEdition": {
+      "type": "string",
+      "defaultValue": "Basic",
+      "allowedValues": [
+        "Basic",
+        "Standard",
+        "Premium"
+      ]
+    },
+    "sql-dbRequestedServiceObjectiveName": {
+      "type": "string",
+      "defaultValue": "Basic",
+      "allowedValues": [
+        "Basic",
+        "S0",
+        "S1",
+        "S2",
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "metadata": {
+        "description": "Describes the performance level for Edition"
+      }
+    }
+    },
+  "variables": {
+    "sql-serverName": "[concat('sql-server', uniqueString(resourceGroup().id))]"
+    },
+  "resources": [
+    {
+      "name": "[variables('sql-serverName')]",
+      "type": "Microsoft.Sql/servers",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2014-04-01-preview",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "sql-server"
+      },
+      "properties": {
+        "administratorLogin": "[parameters('sql-serverAdminLogin')]",
+        "administratorLoginPassword": "[parameters('sql-serverAdminLoginPassword')]"
+      },
+      "resources": [
+        {
+          "name": "AllowAllWindowsAzureIps",
+          "type": "firewallrules",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sql-serverName'))]"
+          ],
+          "properties": {
+            "startIpAddress": "0.0.0.0",
+            "endIpAddress": "0.0.0.0"
+          }
+        },
+        {
+          "name": "[parameters('sql-dbName')]",
+          "type": "databases",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sql-serverName'))]"
+          ],
+          "tags": {
+            "displayName": "sql-db"
+          },
+          "properties": {
+            "collation": "[parameters('sql-dbCollation')]",
+            "edition": "[parameters('sql-dbEdition')]",
+            "maxSizeBytes": "1073741824",
+            "requestedServiceObjectiveName": "[parameters('sql-dbRequestedServiceObjectiveName')]"
+          }
+        }
+      ]
+    }
+    ],
+  "outputs": {}
+}
